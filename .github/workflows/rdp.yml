@@ -1,0 +1,40 @@
+name: BOTRDP
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        type: string
+        description: "Enter Your NGROK TOKEN"
+        required: true
+        default: ""
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 9999
+    steps:
+    - name: Download Ngrok and required files
+      run: |
+        Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+        Invoke-WebRequest https://raw.githubusercontent.com/Riders004/rdp/master/start.bat -OutFile start.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/Riders004/rdp/master/download1.jpeg -OutFile wallpaper.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/Riders004/rdp/master/loop.bat -OutFile loop.bat
+    - name: Extract Ngrok File
+      run: Expand-Archive -Path ngrok.zip -DestinationPath .
+    - name: Add Ngrok Authtoken
+      run: .\ngrok.exe authtoken $Env:NGROK_AUTH
+      env:
+        NGROK_AUTH: ${{ github.event.inputs.increment }}
+    - name: Configure Windows for RDP
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+        Copy-Item -Path wallpaper.bat -Destination D:\a\wallpaper.bat
+    - name: Start Ngrok Tunnel
+      run: Start-Process -NoNewWindow -FilePath .\ngrok.exe -ArgumentList "tcp", "--region", "ap", "3389"
+    - name: Run RDP Start Script
+      run: cmd /c start.bat
+    - name: Keep RDP Session Alive
+      run: cmd /c loop.bat
