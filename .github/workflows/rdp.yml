@@ -1,40 +1,59 @@
-name: BOTRDP
+name: Build and Download Files
 
 on:
-  workflow_dispatch:
-    inputs:
-      increment:
-        type: string
-        description: "Enter Your NGROK TOKEN"
-        required: true
-        default: ""
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: windows-latest
-    timeout-minutes: 9999
+    runs-on: windows-2022
+
     steps:
-    - name: Download Latest Ngrok and required files
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up PowerShell
+      uses: actions/setup-pwsh@v2
+
+    - name: Download Files
       run: |
-        Invoke-WebRequest https://ngrok-agent.s3.amazonaws.com/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-        Invoke-WebRequest https://raw.githubusercontent.com/Riders004/rdp/master/start.bat -OutFile start.bat
-        Invoke-WebRequest https://raw.githubusercontent.com/Riders004/rdp/master/download1.jpeg -OutFile wallpaper.bat
-        Invoke-WebRequest https://raw.githubusercontent.com/Riders004/rdp/master/loop.bat -OutFile loop.bat
-    - name: Extract Ngrok File
-      run: Expand-Archive -Path ngrok.zip -DestinationPath .
-    - name: Add Ngrok Authtoken
-      run: .\ngrok.exe authtoken $Env:NGROK_AUTH
-      env:
-        NGROK_AUTH: ${{ github.event.inputs.increment }}
-    - name: Configure Windows for RDP
+        $ngrokUrl = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
+        $startBatUrl = "https://raw.githubusercontent.com/Riders004/rdp/master/start.bat"
+        $wallpaperBatUrl = "https://raw.githubusercontent.com/Riders004/rdp/master/download1.jpeg"
+        $loopBatUrl = "https://raw.githubusercontent.com/Riders004/rdp/master/loop.bat"
+
+        function DownloadFile {
+            param (
+                [string]$url,
+                [string]$outputPath
+            )
+            try {
+                Invoke-WebRequest -Uri $url -OutFile $outputPath -ErrorAction Stop
+                Write-Output "Successfully downloaded $url to $outputPath"
+            } catch {
+                Write-Error "Failed to download $url. Error: $_"
+            }
+        }
+
+        Write-Output "Starting downloads..."
+
+        DownloadFile -url $ngrokUrl -outputPath "ngrok.zip"
+        DownloadFile -url $startBatUrl -outputPath "start.bat"
+        DownloadFile -url $wallpaperBatUrl -outputPath "wallpaper.bat"
+        DownloadFile -url $loopBatUrl -outputPath "loop.bat"
+
+        Write-Output "Downloads completed."
+      shell: pwsh
+
+    - name: Verify Files
       run: |
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
-        Copy-Item -Path wallpaper.bat -Destination D:\a\wallpaper.bat
-    - name: Start Ngrok Tunnel
-      run: Start-Process -NoNewWindow -FilePath .\ngrok.exe -ArgumentList "tcp", "--region", "ap", "3389"
-    - name: Run RDP Start Script
-      run: cmd /c start.bat
-    - name: Keep RDP Session Alive
-      run: cmd /c loop.bat
+        if (!(Test-Path -Path "ngrok.zip")) { throw "ngrok.zip not found!" }
+        if (!(Test-Path -Path "start.bat")) { throw "start.bat not found!" }
+        if (!(Test-Path -Path "wallpaper.bat")) { throw "wallpaper.bat not found!" }
+        if (!(Test-Path -Path "loop.bat")) { throw "loop.bat not found!" }
+        Write-Output "All files are successfully downloaded."
+      shell: pwsh
