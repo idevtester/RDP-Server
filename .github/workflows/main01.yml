@@ -24,15 +24,9 @@ jobs:
       run: Add-WindowsCapability -Online -Name OpenSSH.Client*
 
     - name: Expose RDP via Serveo
-      run: Start-Process powershell -ArgumentList '-Noexit -Command "ssh -R 3389:localhost:3389 serveo.net"'
-
-    - name: Wait for tunnel to establish
-      run: Start-Sleep -Seconds 10
-
-    - name: Get Serveo URL
       run: |
-        $serveoUrl = (ssh -G serveo.net | Select-String -Pattern "remote forward") -replace ".*@",""
-        echo "RDP Connection URL: $serveoUrl:3389" | Out-File -FilePath rdp_connection.txt
+        echo y | ssh -o "StrictHostKeyChecking no" -R 3389:localhost:3389 serveo.net
 
-    - name: Output RDP Connection URL
-      run: type rdp_connection.txt
+    - name: Display Serveo URL
+      run: |
+        echo "Visit https://serveo.net to find your assigned subdomain for the RDP connection"
