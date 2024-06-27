@@ -4,7 +4,6 @@ on: workflow_dispatch
 
 jobs:
   build:
-
     runs-on: windows-latest
     timeout-minutes: 9999
 
@@ -25,8 +24,9 @@ jobs:
 
     - name: Expose RDP via Serveo
       run: |
-        echo y | ssh -o "StrictHostKeyChecking no" -R 3389:localhost:3389 serveo.net
+        ssh -o "StrictHostKeyChecking no" -R 3389:localhost:3389 serveo.net > serveo_output.txt 2>&1 &
+        Start-Sleep -Seconds 5
+        type serveo_output.txt
 
-    - name: Display Serveo URL
-      run: |
-        echo "Visit https://serveo.net to find your assigned subdomain for the RDP connection"
+    - name: Instructions
+      run: echo "Visit https://serveo.net to find your assigned subdomain for the RDP connection."
