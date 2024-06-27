@@ -1,20 +1,22 @@
-name: Win10RDP
+name: Build and Expose RDP
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: windows-latest
-    timeout-minutes: 9999
+    runs-on: windows-2022
 
     steps:
-    - name: Activating RDP access
+    - name: Prepare workflow directory
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
-    - name: Setting password
+    - name: Set password for runneradmin
       run: |
         $password = ConvertTo-SecureString "ComplexP@ssw0rd2024!" -AsPlainText -Force
         Set-LocalUser -Name "runneradmin" -Password $password
@@ -35,5 +37,7 @@ jobs:
         }
         echo "RDP Connection URL: $serveoUrl" | Out-File -FilePath rdp_connection.txt
 
-    - name: Display Serveo URL
-      run: type rdp_connection.txt
+    - name: Print Serveo output
+      run: |
+        type serveo_output.txt
+        type rdp_connection.txt
