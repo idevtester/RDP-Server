@@ -22,7 +22,7 @@ jobs:
         Add-WindowsCapability -Online -Name OpenSSH.Client*
         
         # Start Serveo SSH tunnel
-        ssh -o "StrictHostKeyChecking no" -R myalias:3389:localhost:3389 serveo.net > serveo_output.txt 2>&1 &
+        ssh -o "StrictHostKeyChecking no" -R chakka:3389:localhost:3389 serveo.net > serveo_output.txt 2>&1 &
         Start-Sleep -Seconds 10
         
         # Get the Serveo URL
