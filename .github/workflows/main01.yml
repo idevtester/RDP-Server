@@ -1,43 +1,43 @@
-name: Build and Expose RDP
+name: Set up RDP with Serveo
 
-on:
-  push:
-    branches:
-      - main
+on: [push]
 
 jobs:
   build:
     runs-on: windows-2022
 
     steps:
-    - name: Prepare workflow directory
+    - name: Set up RDP and Serveo
       run: |
+        # Enable RDP and allow it through the firewall
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-
-    - name: Set password for runneradmin
-      run: |
+        
+        # Set the password for runneradmin
         $password = ConvertTo-SecureString "ComplexP@ssw0rd2024!" -AsPlainText -Force
         Set-LocalUser -Name "runneradmin" -Password $password
-
-    - name: Install OpenSSH client
-      run: Add-WindowsCapability -Online -Name OpenSSH.Client*
-
-    - name: Expose RDP via Serveo
-      run: |
-        ssh -o "StrictHostKeyChecking no" -R 3389:localhost:3389 serveo.net > serveo_output.txt 2>&1 &
+        
+        # Install OpenSSH client
+        Add-WindowsCapability -Online -Name OpenSSH.Client*
+        
+        # Start Serveo SSH tunnel
+        ssh -o "StrictHostKeyChecking no" -R myalias:3389:localhost:3389 serveo.net > serveo_output.txt 2>&1 &
         Start-Sleep -Seconds 10
-        Get-Content serveo_output.txt
+        
+        # Get the Serveo URL
         $serveoUrl = (Select-String -Path serveo_output.txt -Pattern "Forwarding TCP connections from [^ ]+" | Select-Object -First 1).Line
         if ($serveoUrl) {
           $serveoUrl = $serveoUrl -replace ".*Forwarding TCP connections from ", ""
         } else {
           $serveoUrl = "No Serveo URL found"
         }
+        
+        # Print the full serveo_output.txt contents for debugging
+        Get-Content serveo_output.txt
+        
+        # Save the Serveo URL to a file
         echo "RDP Connection URL: $serveoUrl" | Out-File -FilePath rdp_connection.txt
 
-    - name: Print Serveo output
-      run: |
-        type serveo_output.txt
-        type rdp_connection.txt
+    - name: Print RDP Connection URL
+      run: type rdp_connection.txt
