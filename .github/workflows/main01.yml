@@ -1,0 +1,38 @@
+name: Win10RDP
+
+on: workflow_dispatch
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+    timeout-minutes: 9999
+
+    steps:
+    - name: Activating RDP access
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+
+    - name: Setting password
+      run: |
+        $password = ConvertTo-SecureString "ComplexP@ssw0rd2024!" -AsPlainText -Force
+        Set-LocalUser -Name "runneradmin" -Password $password
+
+    - name: Install OpenSSH client
+      run: Add-WindowsCapability -Online -Name OpenSSH.Client*
+
+    - name: Expose RDP via Serveo
+      run: Start-Process powershell -ArgumentList '-Noexit -Command "ssh -R 3389:localhost:3389 serveo.net"'
+
+    - name: Wait for tunnel to establish
+      run: Start-Sleep -Seconds 10
+
+    - name: Get Serveo URL
+      run: |
+        $serveoUrl = (ssh -G serveo.net | Select-String -Pattern "remote forward") -replace ".*@",""
+        echo "RDP Connection URL: $serveoUrl:3389" | Out-File -FilePath rdp_connection.txt
+
+    - name: Output RDP Connection URL
+      run: type rdp_connection.txt
