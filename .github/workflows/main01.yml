@@ -25,16 +25,16 @@ jobs:
         ssh -o "StrictHostKeyChecking no" -R chakka:3389:localhost:3389 serveo.net > serveo_output.txt 2>&1 &
         Start-Sleep -Seconds 10
         
+        # Print the full serveo_output.txt contents for debugging
+        Get-Content serveo_output.txt
+        
         # Get the Serveo URL
-        $serveoUrl = (Select-String -Path serveo_output.txt -Pattern "Forwarding TCP connections from [^ ]+" | Select-Object -First 1).Line
+        $serveoUrl = (Select-String -Path serveo_output.txt -Pattern "Forwarding TCP traffic from [^ ]+" | Select-Object -First 1).Line
         if ($serveoUrl) {
-          $serveoUrl = $serveoUrl -replace ".*Forwarding TCP connections from ", ""
+          $serveoUrl = $serveoUrl -replace ".*Forwarding TCP traffic from ", ""
         } else {
           $serveoUrl = "No Serveo URL found"
         }
-        
-        # Print the full serveo_output.txt contents for debugging
-        Get-Content serveo_output.txt
         
         # Save the Serveo URL to a file
         echo "RDP Connection URL: $serveoUrl" | Out-File -FilePath rdp_connection.txt
